@@ -1,8 +1,8 @@
 import tempfile
-import smb
+import smbclient
 import mutagenx as mutagen
 from smb.SMBConnection import SMBConnection
-from mutagenx.easyid3 import EasyID3
+from audiostreamer.utils.easyid3_patched import EasyID3Patched
 
 AUDIO_SUFFIXES = ["mp3"]
 
@@ -33,13 +33,18 @@ def list_content_of_share(connection, share, path='\\'):
 			try:
 				if element.filename[-3:] in AUDIO_SUFFIXES:
 					full_path = "\\\\DATENKRAKE\\" + share.name + path + '\\' + element.filename
-					audio = EasyID3(full_path)
+					tfp = tempfile.TemporaryFile()
+					file_data = connection.retrieveFileFromOffset(share.name, path + '\\' + element.filename, tfp, max_length=2000)
+					tfp.seek(0)
+					if file_data[1] != 2000:
+						raise ValueError("not good")
+					audio = EasyID3Patched((tfp, file_data[1]))
 					print(audio["title"])
 					print(audio.pprint())
 			except UnicodeEncodeError:
 				print("encode Error")
 			except mutagen._id3util.ID3NoHeaderError:
-				print("no valid id3 header")
+			 	print("no valid id3 header")
 root = '\\'
 
 # list all shares

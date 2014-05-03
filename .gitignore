@@ -48,7 +48,7 @@ coverage.xml
 # Django stuff:
 *.log
 *.pot
-audiostreamer/audiostreamer/local_settings.py
+audiostreamer/local_settings.py
 
 # Sphinx documentation
 docs/_build/
