@@ -1,5 +1,4 @@
 import tempfile
-import smbclient
 import mutagenx as mutagen
 from smb.SMBConnection import SMBConnection
 from audiostreamer.utils.easyid3_patched import EasyID3Patched
