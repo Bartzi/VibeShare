@@ -1,20 +1,37 @@
 {% extends "webui_base.html" %}
 
-{% block rawcontent %}
-    <div class="row">
-        <div class="span-one-third">
-            <h3>Shares</h3>
-            <p>
-            {% if shares %}
-                <ul>
-                {% for share in shares %}
-                    <li>{{ share.name }}</a></li>
-                {% endfor %}
-                </ul>
-            {% else %}
-                There are no shares yet.
-            {% endif %}
-            </p>
-        </div>
+{% block content %}
+    <div>
+        <h1>Shares</h1>
+        <p>
+        {% if shares %}
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th class="maximize">Computer</th>
+                        <th class="maximize">Share</th>
+                        <th class="minimize">IP address</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for share in shares %}
+                        <tr>
+                            <td class="maximize">
+                                {{ share.computer }}
+                            </td>
+                            <td class="minimize">
+                                {{ share.name }}
+                            </td>
+                            <td class="minimize">
+                                {{ share.ip_address }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            There are no shares yet.
+        {% endif %}
+        </p>
     </div>
 {% endblock %}
