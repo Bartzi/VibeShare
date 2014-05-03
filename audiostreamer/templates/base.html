@@ -1,0 +1,59 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html>
+    <head>
+        {% block header %}
+        <title>{% block title %}VibeShare{% endblock %}</title>
+        <link rel="stylesheet" href="{% get_static_prefix %}css/bootstrap.min.css">
+        <link rel="stylesheet" href="{% get_static_prefix %}css/evap.css">
+        <link rel="stylesheet" href="{% get_static_prefix %}css/ui.multiselect.css" />
+        <link rel="stylesheet" href="{% get_static_prefix %}css/ui.combobox.css" />
+        <link rel="stylesheet" href="{% get_static_prefix %}css/ui.datepicker.css" />
+        <!--<link rel="shortcut icon" href="{% get_static_prefix %}images/favicon.ico" />-->
+        {% endblock %}
+        {% if debug %}
+        <!-- red topbar in debug mode -->
+        <style lang="text/css">
+            .topbar-inner, .topbar .fill {
+                background: #900 !important;
+            }
+        </style>
+        {% endif %}
+    </head>
+    <body>
+        {% block rawcontent %}
+        {% endblock %}
+        
+
+        {% block scripts %}
+        <script type="text/javascript" src="{% get_static_prefix %}js/jquery-1.7.1.min.js"></script>
+        <script type="text/javascript" src="{% get_static_prefix %}js/jquery-ui-1.8.17.custom.min.js"></script>
+
+        <script type="text/javascript" src="{% get_static_prefix %}js/bootstrap-alerts.js"></script>
+        <script type="text/javascript" src="{% get_static_prefix %}js/bootstrap-dropdown.js"></script>
+        <script type="text/javascript" src="{% get_static_prefix %}js/bootstrap-datepicker.js"></script>
+        
+        <!-- multi-select plugin -->
+        <script type="text/javascript" src="{% get_static_prefix %}js/plugins/jquery.localisation-min.js"></script>
+        <script type="text/javascript">
+            $.localise.defaultLanguage = '{{ LANGUAGE_CODE|escapejs }}';
+        </script>
+        
+        <script type="text/javascript" src="{% get_static_prefix %}js/plugins/jquery.scrollTo-1.4.2-min.js"></script>
+        <script type="text/javascript" src="{% get_static_prefix %}js/ui.multiselect.js"></script>
+
+        <script type="text/javascript" src="{% get_static_prefix %}js/ui.combobox.js"></script>
+        <script type="text/javascript" src="{% get_static_prefix %}js/ui.formset.js"></script>
+        
+        <script>
+            $(function(){
+                // add a close button to each message and make it work
+                $(".alert-message").append("<a class='close' href='#'>&#xd7;</a>").alert();
+                // activate topbar
+                $('#topbar').dropdown();
+            });
+        </script>
+        {% endblock %}
+    </body>
+</html>

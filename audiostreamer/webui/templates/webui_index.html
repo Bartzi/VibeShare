@@ -1,0 +1,20 @@
+{% extends "webui_base.html" %}
+
+{% block rawcontent %}
+    <div class="row">
+        <div class="span-one-third">
+            <h3>Shares</h3>
+            <p>
+            {% if shares %}
+                <ul>
+                {% for share in shares %}
+                    <li>{{ share.name }}</a></li>
+                {% endfor %}
+                </ul>
+            {% else %}
+                There are no shares yet.
+            {% endif %}
+            </p>
+        </div>
+    </div>
+{% endblock %}

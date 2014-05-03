@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/1.6/ref/settings/
 import os
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 
+from .local_settings import *
+
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -30,6 +32,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'musicfinder',
+    'webui',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -74,11 +77,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-# Create a local_settings.py if you want to override settings per machine
-# or user, e.g. for development or different settings in deployments using
-# multiple servers.
-_LOCAL_SETTINGS_FILENAME = os.path.join(BASE_DIR, "local_settings.py")
-if os.path.exists(_LOCAL_SETTINGS_FILENAME):
-    execfile(_LOCAL_SETTINGS_FILENAME)
-del _LOCAL_SETTINGS_FILENAME
+
+TEMPLATE_DIRS = (
+    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+    os.path.join(BASE_DIR, "templates")
+)

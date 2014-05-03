@@ -49,6 +49,8 @@ coverage.xml
 *.log
 *.pot
 audiostreamer/audiostreamer/local_settings.py
+audiostreamer/db.sqlite3
+audiostreamer/staticfiles/
 
 # Sphinx documentation
 docs/_build/
