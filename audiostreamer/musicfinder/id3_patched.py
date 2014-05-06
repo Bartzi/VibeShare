@@ -3,7 +3,7 @@ from mutagenx.id3 import ID3
 
 class ID3Patched(ID3):
 
-	def __fullread(self, size):
+    def __fullread(self, size):
         """ Read a certain number of bytes from the source file. """
 
         try:

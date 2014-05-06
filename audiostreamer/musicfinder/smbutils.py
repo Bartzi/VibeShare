@@ -1,10 +1,22 @@
 import tempfile
+import mutagenx
+
 from smb.SMBConnection import SMBConnection
-from mutagenx.easyid3 import EasyID3
+from nmb.NetBIOS import NetBIOS
+
+from utils.easyid3_patched import EasyID3Patched
+
+# get nmap support
+from libnmap.parser import NmapParser
+try:
+    from libnmap.process import NmapProcess
+except ImportError: 
+    from utils.nmap_process_windows import NmapProcessWindows as NmapProcess
 
 from django.conf import settings
-from models import Share
-from models import MusicFile
+
+from .models import Share
+from .models import MusicFile
 
 AUDIO_SUFFIXES = ["mp3"]
 
@@ -18,13 +30,38 @@ class SMBUtil():
     def __init__(self):
         pass
 
-    def discover_smb_shares():
+    def discover_smb_shares(self):
         """
             scan the local network for active smb shares
         """
-        pass
+        # do some host discovery
 
-    def getFractionOfFile(self, connection, share, path, element, max_length=ID3_DISCOVER_LENGTH):
+        # TODO implement network address discovery
+        nm = NmapProcess(settings.LOCAL_NET, options="-sT -p 139 -n")
+        net_bios = NetBIOS(broadcast=True)
+
+        if nm.run() == 0:
+            # get the scan report
+            report = NmapParser.parse(nm.stdout)
+            interesting_hosts = []
+            # find the hosts that are online and have an open port that indicates smb
+            for host in report.hosts:
+                if host.status == "up":
+                    if len(host.get_open_ports()) != 0:
+                        # check whether it is a host we might access with smb
+                        hostname = net_bios.queryIPForName(host.address)[0]
+                        if hostname is None:
+                            continue
+                        interesting_hosts.append({
+                            "address": host.address,
+                            "hostname": hostname})
+            print(interesting_hosts)
+        else:
+            print(nm.stderr)
+
+        return interesting_hosts
+
+    def _getFractionOfFile(self, connection, share, path, element, max_length=ID3_DISCOVER_LENGTH):
 
         temp_file = tempfile.TemporaryFile()
 
@@ -38,7 +75,7 @@ class SMBUtil():
         temp_file.seek(0)
         return (temp_file, max_length)
 
-    def get_id3_info(self, file_info):
+    def _get_id3_info(self, file_info):
 
         id3_info = EasyID3Patched(file_info)
         music_file = MusicFile()
@@ -65,12 +102,12 @@ class SMBUtil():
                     new_path = path + element.filename
                 else:
                     new_path = path + '\\' + element.filename
-                find_all_music_files(connection, share, new_path)
+                self.find_all_music_files(connection, share, new_path)
             else:
                 try:
                     if element.filename[-3:] in AUDIO_SUFFIXES:
                         file_info = self.getFractionOfFile(connection["smb_share"], share, path, element)
-                        music_file = get_id3_info(file_info)
+                        music_file = self.get_id3_info(file_info)
                         music_file.name = element.filename
                         music_file.path = path
                         # check whether the current share is already in our database -> if not create a new one
@@ -82,3 +119,12 @@ class SMBUtil():
 
                         music_file.share = database_share
                         music_file.save()
+                except UnicodeEncodeError:
+                    pass
+                except mutagenx._id3util.ID3NoHeaderError:
+                    pass
+
+if __name__ == "__main__":
+
+    smb = SMBUtil()
+    smb.discover_smb_shares()
