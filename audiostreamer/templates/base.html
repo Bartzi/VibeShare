@@ -1,0 +1,28 @@
+{% load staticfiles %}
+
+<!DOCTYPE html>
+<html>
+    <head>
+        {% block header %}
+        <title>{% block title %}VibeShare{% endblock %}</title>
+        <link rel="stylesheet" href="{% static "css/bootstrap.min.css" %}">
+        {% endblock %}
+        {% if debug %}
+        <!-- red topbar in debug mode -->
+        <style lang="text/css">
+            .topbar-inner, .topbar .fill {
+                background: #900 !important;
+            }
+        </style>
+        {% endif %}
+    </head>
+    <body>
+        {% block content %}
+        {% endblock %}
+        
+
+        {% block scripts %}
+            <script type="text/javascript" src="{% static "js/jquery-2.1.1.min.js" %}"></script>
+        {% endblock %}
+    </body>
+</html>
