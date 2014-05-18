@@ -12,5 +12,6 @@ urlpatterns = patterns('',
 
     url(r"^$", 'webui.views.index'),
     url(r'^admin/', include(admin.site.urls)),
+    url(r'^smb/', include('musicfinder.urls')),
     url(r'^webui/', include('webui.urls')),
 )

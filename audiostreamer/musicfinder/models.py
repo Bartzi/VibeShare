@@ -17,10 +17,10 @@ class CharListField(models.TextField):
             return value
         return value.split(self.token)
 
-    def get_db_prep_value(self, value):
+    def get_db_prep_value(self, value, connection, prepared=False):
         if not value: return
         assert(isinstance(value, list) or isinstance(value, tuple))
-        return self.token.join([unicode(s) for s in value])
+        return self.token.join([str(s) for s in value])
 
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)

@@ -2,6 +2,7 @@ import tempfile
 import mutagenx
 
 from smb.SMBConnection import SMBConnection
+from smb.base import NotConnectedError
 from nmb.NetBIOS import NetBIOS
 
 from utils.easyid3_patched import EasyID3Patched
@@ -81,21 +82,25 @@ class SMBUtil():
 
         id3_info = EasyID3Patched(file_info)
         music_file = MusicFile()
-        music_file.title = id3_info['title']
-        music_file.artist = id3_info['artist']
-        music_file.album = id3_info['album']
-        music_file.tracknumber = int(id3_info['tracknumber'])
-        music_file.discnumber = id3_info['discnumber']
+        music_file.title = id3_info[u'title']
+        music_file.artist = id3_info[u'artist']
+        music_file.album = id3_info[u'album']
+        tracknumber = id3_info['tracknumber']
+        if not isinstance(tracknumber, str):
+            music_file.tracknumber = int(id3_info[u'tracknumber'][0])
+        else:
+            music_file.tracknumber = int(id3_info[u'tracknumber'])
+        music_file.discnumber = id3_info[u'discnumber']
 
         return music_file
 
 
-    def find_all_music_files(self, connection, share, path='\\'):
+    def find_all_music_files(self, host, connection, share, path='\\'):
         """
             Function that discovers all files that are audio files in the given share.
             Interesting information about the audio files will be saved to the database
         """
-        path_content = connection["smb_share"].listPath(share.name, path)
+        path_content = connection.listPath(share.name, path)
         for element in path_content:
             if element.isDirectory:
                 if '.' in element.filename or '..' in element.filename:
@@ -104,20 +109,23 @@ class SMBUtil():
                     new_path = path + element.filename
                 else:
                     new_path = path + '\\' + element.filename
-                self.find_all_music_files(connection, share, new_path)
+                print(new_path)
+                self.find_all_music_files(host, connection, share, new_path)
             else:
                 try:
                     if element.filename[-3:] in AUDIO_SUFFIXES:
-                        file_info = self.getFractionOfFile(connection["smb_share"], share, path, element)
-                        music_file = self.get_id3_info(file_info)
+                        file_info = self._getFractionOfFile(connection, share, path, element)
+                        music_file = self._get_id3_info(file_info)
                         music_file.name = element.filename
-                        music_file.path = path
+                        music_file.path = r'{}'.format(path)
+                        print(path)
+                        print(music_file.path)
                         # check whether the current share is already in our database -> if not create a new one
-                        if (Share.objects.filter(name=share.name, computer=connection["computer"]).count() == 0):
-                            database_share = Share(computer=connection.remote_name, name=share.name, ip_address=connection["ip_address"])
+                        if (Share.objects.filter(name=share.name, computer=host["hostname"]).count() == 0):
+                            database_share = Share(computer=connection.remote_name, name=share.name, ip_address=host["address"])
                             database_share.save()
                         else:
-                            database_share = Share.objects.get(name=share.name, computer=connection["computer"])
+                            database_share = Share.objects.get(name=share.name, computer=host["hostname"])
 
                         music_file.share = database_share
                         music_file.save()
@@ -126,21 +134,25 @@ class SMBUtil():
                 except mutagenx._id3util.ID3NoHeaderError:
                     pass
 
-        def get_smb_connection_with_shares(self, host):
-            connection = SMBConnection("RaspBerryPi$", "K3ks3!", "Testtest", host["hostname"], use_ntlm_v2 = True)
-            shares = connection.listShares()
+    def get_smb_connection_with_shares(self, host):
+        connection = SMBConnection("RaspBerryPi$", "K3ks3!", "Testtest", host["hostname"], use_ntlm_v2 = True)
 
-            smb_connection = {
-                "connection": connection,
-                "shares": [],
-            }
+        if not connection.connect(host["address"], 139):
+            raise NotConnectedError()
 
-            for share in shares:
-                if share.isSpecial or share.isTemporary:
-                    continue
-                smb_connection["shares"].append(share)
+        shares = connection.listShares()
 
-            return smb_connection()
+        smb_connection = {
+            "connection": connection,
+            "shares": [],
+        }
+
+        for share in shares:
+            if share.isSpecial or share.isTemporary:
+                continue
+            smb_connection["shares"].append(share)
+
+        return smb_connection
 
 if __name__ == "__main__":
 

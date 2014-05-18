@@ -30,7 +30,10 @@ class EasyID3Patched(EasyID3):
         key = key.lower()
         func = dict_match(self.Get, key, self.GetFallback)
         if func is not None:
-            return func(self.__id3, key)
+            try:
+                return func(self.__id3, key)
+            except KeyError:
+                return None
         else:
             raise EasyID3KeyError("%r is not a valid key" % key)
 
