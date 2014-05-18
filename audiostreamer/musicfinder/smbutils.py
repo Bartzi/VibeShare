@@ -23,6 +23,10 @@ AUDIO_SUFFIXES = ["mp3"]
 ID3_DISCOVER_LENGTH = 2000
 
 
+class NoInterestingHostsFound(Exception):
+    pass
+
+
 class SMBUtil():
 
     connections = None
@@ -36,7 +40,6 @@ class SMBUtil():
         """
         # do some host discovery
 
-        # TODO implement network address discovery
         nm = NmapProcess(settings.LOCAL_NET, options="-sT -p 139 -n")
         net_bios = NetBIOS(broadcast=True)
 
@@ -55,9 +58,8 @@ class SMBUtil():
                         interesting_hosts.append({
                             "address": host.address,
                             "hostname": hostname})
-            print(interesting_hosts)
         else:
-            print(nm.stderr)
+            raise NoInterestingHostsFound
 
         return interesting_hosts
 
@@ -123,6 +125,22 @@ class SMBUtil():
                     pass
                 except mutagenx._id3util.ID3NoHeaderError:
                     pass
+
+        def get_smb_connection_with_shares(self, host):
+            connection = SMBConnection("RaspBerryPi$", "K3ks3!", "Testtest", host["hostname"], use_ntlm_v2 = True)
+            shares = connection.listShares()
+
+            smb_connection = {
+                "connection": connection,
+                "shares": [],
+            }
+
+            for share in shares:
+                if share.isSpecial or share.isTemporary:
+                    continue
+                smb_connection["shares"].append(share)
+
+            return smb_connection()
 
 if __name__ == "__main__":
 
