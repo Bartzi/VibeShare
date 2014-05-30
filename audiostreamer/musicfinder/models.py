@@ -1,4 +1,5 @@
 from django.db import models
+import ast
 
 class CharListField(models.TextField):
     """
@@ -12,15 +13,20 @@ class CharListField(models.TextField):
         super(CharListField, self).__init__(*args, **kwargs)
 
     def to_python(self, value):
-        if not value: return
+        if not value:
+            value = []
         if isinstance(value, list):
             return value
-        return value.split(self.token)
+        
+        return ast.literal_eval(value)
 
     def get_db_prep_value(self, value, connection, prepared=False):
-        if not value: return
-        assert(isinstance(value, list) or isinstance(value, tuple))
-        return self.token.join([str(s) for s in value])
+        if value is None:
+            return value
+
+        #assert(isinstance(value, list) or isinstance(value, tuple))
+
+        return value
 
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)

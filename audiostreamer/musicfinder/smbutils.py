@@ -128,7 +128,10 @@ class SMBUtil():
                             database_share = Share.objects.get(name=share.name, computer=host["hostname"])
 
                         music_file.share = database_share
-                        music_file.save()
+
+                        #check whether music file already exists
+                        if MusicFile.objects.filter(title=music_file.title, artist=music_file.artist, album=music_file.album, tracknumber=music_file.tracknumber, discnumber=music_file.discnumber, share=music_file.share).count() != 0:
+                            music_file.save()
                 except UnicodeEncodeError:
                     pass
                 except mutagenx._id3util.ID3NoHeaderError:
