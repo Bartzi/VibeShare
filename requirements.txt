@@ -1,0 +1,3 @@
+mutagenx==1.23
+python-libnmap==0.5.1
+pysmb==1.1.8
