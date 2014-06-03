@@ -8,11 +8,12 @@ from nmb.NetBIOS import NetBIOS
 from utils.easyid3_patched import EasyID3Patched
 
 # get nmap support
-from libnmap.parser import NmapParser
 try:
-    from libnmap.process import NmapProcess
+    from utils.nmap_process_linux import NmapProcess
+    from utils.nmap_parser import NmapParser
 except ImportError: 
     from utils.nmap_process_windows import NmapProcessWindows as NmapProcess
+    from libnmap.parser import NmapParser
 
 from django.conf import settings
 
@@ -44,8 +45,10 @@ class SMBUtil():
         nm = NmapProcess(settings.LOCAL_NET, options="-sT -p 139 -n")
         net_bios = NetBIOS(broadcast=True)
 
-        if nm.run() == 0:
+        # might get a problem on windows... but tool is supposed to run under linux =) so its fine
+        if nm.sudo_run() == 0:
             # get the scan report
+            print(nm.stdout)
             report = NmapParser.parse(nm.stdout)
             interesting_hosts = []
             # find the hosts that are online and have an open port that indicates smb
