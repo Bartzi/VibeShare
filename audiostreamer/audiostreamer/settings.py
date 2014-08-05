@@ -33,6 +33,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'musicfinder',
     'webui',
+    'spotify_client',
 )
 
 MIDDLEWARE_CLASSES = (

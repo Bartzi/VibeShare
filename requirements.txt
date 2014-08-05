@@ -1,3 +1,5 @@
-mutagenx==1.23
-python-libnmap==0.5.1
-pysmb==1.1.8
+mutagenx>=1.23
+python-libnmap>=0.5.1
+pysmb>=1.1.8
+autobahn>=0.8.9
+msgpack-python>=0.4.2

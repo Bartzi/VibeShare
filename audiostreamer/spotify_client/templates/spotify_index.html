@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% load extra_filters %}
+{% load staticfiles %}
+
+{% block content %}
+    <div class="container">
+        <h1>WebSocket Test</h1>
+        <div>
+            <input class="text" type="text">
+            <button class="btn btn-primary send">Send</button>
+            <butonn class="btn btn-warning play">Play some music</button>
+        </div>
+        <h1 class="placeholder"></h1>
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script type="text/javascript" src="{% static 'js/base32.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/autobahn.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/bson.js' %}"></script>
+    <script type="text/javascript" src="{% static 'js/websockets.js' %}"></script>
+{% endblock %}

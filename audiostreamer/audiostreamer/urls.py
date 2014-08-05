@@ -3,7 +3,6 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 admin.autodiscover()
 
-from webui import views
 
 urlpatterns = patterns('',
     # Examples:
@@ -14,4 +13,5 @@ urlpatterns = patterns('',
     url(r'^admin/', include(admin.site.urls)),
     url(r'^smb/', include('musicfinder.urls')),
     url(r'^webui/', include('webui.urls')),
+    url(r'^spotify/', include('spotify_client.urls')),
 )
