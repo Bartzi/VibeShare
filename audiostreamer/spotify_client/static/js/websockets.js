@@ -22,6 +22,7 @@ AudioPlayer = function (context) {
     this.alreadyPlayedTime = 0;
     this.currentStopTime = 0;
     this.currentlyFillingBuffer = false;
+    this.framesToSkip = 0;
 }
 
 AudioPlayer.prototype.process = function (event) {
@@ -68,50 +69,62 @@ AudioPlayer.prototype.appendData = function(leftAudio, rightAudio) {
 AudioPlayer.prototype.play = function () {
 
     var that = this;
+    this.isPlaying = true;
     this.currentStopTime = this.context.currentTime;
-    requestAnimationFrame(function (timeStamp) { that.playingWatchdog(timeStamp); });
+    setTimeout(function (timeStamp){ that.playingWatchdog(timeStamp); }, 10);
 };
 
 AudioPlayer.prototype.playingWatchdog = function (timeStamp) {
     var currentTime = this.context.currentTime;
     var timeToGo = this.currentStopTime - currentTime;
     if (timeToGo < 2) {
-
+  
         // set the new audiobuffer
         var byteLength = this.leftAudio.length + this.rightAudio.length;
         if (byteLength == 0) {
             // we have no more data to play...
+            this.isPlaying = false;
             return;
         }
         this.audioBuffer = this.context.createBuffer(2, byteLength, 44100);
         this.audioBuffer.getChannelData(0).set(this.leftAudio);
         this.audioBuffer.getChannelData(1).set(this.rightAudio);
-        if (!this.currentlyFillingBuffer) {
-            this.leftAudio = new Float32Array();
-            this.rightAudio = new Float32Array();
-        }
 
-        // create new  audio source
-        var source = this.context.createBufferSource();
-        source.buffer = this.audioBuffer;
-        source.connect(this.context.destination);
-        source.start(this.currentStopTime);
+        // if we don't need to wait in order to synchronise
+        if (this.framesToSkip == 0) {
+
+            // create new  audio source
+            var source = this.context.createBufferSource();
+            source.buffer = this.audioBuffer;
+            source.connect(this.context.destination);
+            source.start(this.currentStopTime);
+        } else {
+            // decrease the times we need to wait
+            this.framesToSkip--;
+            console.log("skipping a frame");
+        }
 
         // say when to stop and update variables
         this.currentStopTime = this.currentStopTime + this.audioBuffer.duration / this.audioBuffer.numberOfChannels;
         console.log("playing until:" + this.currentStopTime);
+
+        // delete the buffers
+        if (!this.currentlyFillingBuffer) {
+            this.leftAudio = new Float32Array();
+            this.rightAudio = new Float32Array();
+        }
     }
 
     var that = this;
-    requestAnimationFrame(function (timeStamp){ that.playingWatchdog(timeStamp); });
+    setTimeout(function (timeStamp){ that.playingWatchdog(timeStamp); }, 10);
 };
 
 
 $(document).ready(function(){
 
-    connection = new WebSocket('ws://127.0.0.1:8080/');
+    var host = window.location.hostname;
+    connection = new WebSocket('ws://' + host + ':8080/');
     connection.binaryType = 'arraybuffer';
-    BSON = bson().BSON;
 
     window.AudioContext = window.AudioContext || window.webkitAudioContext;
     audioContext = new AudioContext();
@@ -121,19 +134,18 @@ $(document).ready(function(){
 
 
     connection.onopen = function () {
-
         console.log("connection is open");
-        var data = BSON.serialize({"message": "playlist"}, false, true, false);
+        var data = JSON.stringify({"message": "playlist"});
         connection.send(data);
 
     };
 
     connection.onmessage = function(message) {
-        var a;
-        try {
-            a = BSON.deserialize(new Int8Array(message.data));
-            $('.placeholder').append(a.message);
-        } catch (e) {
+        
+        if (typeof message.data === "string") {
+            data = JSON.parse(message.data)
+            handleMessage(data);            
+        } else {
             audioPlayer.addData(message.data);
         }
     }
@@ -152,18 +164,29 @@ $(document).ready(function(){
             console.log("No Session!");
             return;
         }
-        var data = BSON.serialize({"message": "play"}, false, true, false);
-        connection.send(data);
+        var songURI = $('#song').val();
+        var data = {
+            "message": "play",
+            "song": songURI
+        }
+        connection.send(JSON.stringify(data));
     });
 });
 
-function playMusic(args) {
-    var data = args.data;
-    musicbuffer = data;
-    if (!isPlaying) {
-        processNode.connect(audioContext.destination);
-        isPlaying = true;
-    } else {
+function handleMessage(data) {
+    switch (data.message) {
+        case "play":
+            if (!audioPlayer.isPlaying) {
+                audioPlayer.play();
+            }
+            break;
+        case "skip":
+            frames = data.frames;
+            audioPlayer.framesToSkip = frames + 1;
+            break;
+        default:
+            $('.placeholder').append(data.message);
+            break;
     }
 }
 
