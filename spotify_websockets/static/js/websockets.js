@@ -123,7 +123,7 @@ AudioPlayer.prototype.playingWatchdog = function (timeStamp) {
 $(document).ready(function(){
 
     var host = window.location.hostname;
-    connection = new WebSocket('ws://' + host + ':8080/');
+    connection = new WebSocket('ws://' + host + ':8080/ws');
     connection.binaryType = 'arraybuffer';
 
     window.AudioContext = window.AudioContext || window.webkitAudioContext;

@@ -1,10 +1,19 @@
 #-*- coding: utf-8 -*-
-import asyncio
+
+from __future__ import unicode_literals, print_function
+
 import spotify
 import threading
-import configparser
+import ConfigParser as configparser
 import json
-from autobahn.asyncio.websocket import WebSocketServerProtocol, WebSocketServerFactory
+
+from twisted.internet import reactor
+from twisted.python import log
+from twisted.web.server import Site
+from twisted.web.static import File
+
+from autobahn.twisted.websocket import WebSocketServerFactory, WebSocketServerProtocol
+from autobahn.twisted.resource import WebSocketResource
 
 class SpotifyHandler:
     """
@@ -48,9 +57,8 @@ class SpotifyHandler:
                 loop.start()
                 config = configparser.ConfigParser()
                 config.read("config")
-                spotify_config = config["SPOTIFY"]
 
-                self.session.login(spotify_config["user"], spotify_config["password"])
+                self.session.login(config.get('SPOTIFY', 'user'), config.get('SPOTIFY', 'password'))
                 self.initialise_event_listeners()
                 self.logged_in_event.wait()
 
@@ -194,15 +202,13 @@ if __name__ == '__main__':
     factory = WebSocketServerFactory("ws://0.0.0.0:8080", debug=False)
     factory.protocol = MyServerProtocol
 
-    loop = asyncio.get_event_loop()
-    coro = loop.create_server(factory, '0.0.0.0', 8080)
-    server = loop.run_until_complete(coro)
+    resource = WebSocketResource(factory)
 
-    try:
-        print("starting server")
-        loop.run_forever()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        server.close()
-        loop.close()
+    root = File("./static")
+    root.putChild("ws", resource)
+
+    site = Site(root)
+    reactor.listenTCP(8080, site)
+
+    print("starting server")
+    reactor.run()

@@ -58,3 +58,7 @@ docs/_build/
 
 # Vagrant
 .vagrant/
+
+# spotify config and appkey
+spotify_appkey.key
+config
