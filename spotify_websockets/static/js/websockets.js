@@ -23,6 +23,11 @@ AudioPlayer = function (context) {
     this.currentStopTime = 0;
     this.currentlyFillingBuffer = false;
     this.framesToSkip = 0;
+    this.setStartSecond = false;
+    this.lastBufferStartSecond = null;
+    this.lastBufferEndSecond = null;
+    this.currentBufferStartSecond = 0;
+    this.currentBufferEndSecond = 0;
 }
 
 AudioPlayer.prototype.process = function (event) {
@@ -90,19 +95,11 @@ AudioPlayer.prototype.playingWatchdog = function (timeStamp) {
         this.audioBuffer.getChannelData(0).set(this.leftAudio);
         this.audioBuffer.getChannelData(1).set(this.rightAudio);
 
-        // if we don't need to wait in order to synchronise
-        if (this.framesToSkip == 0) {
-
-            // create new  audio source
-            var source = this.context.createBufferSource();
-            source.buffer = this.audioBuffer;
-            source.connect(this.context.destination);
-            source.start(this.currentStopTime);
-        } else {
-            // decrease the times we need to wait
-            this.framesToSkip--;
-            console.log("skipping a frame");
-        }
+        // create new  audio source
+        var source = this.context.createBufferSource();
+        source.buffer = this.audioBuffer;
+        source.connect(this.context.destination);
+        source.start(this.currentStopTime);
 
         // say when to stop and update variables
         this.currentStopTime = this.currentStopTime + this.audioBuffer.duration / this.audioBuffer.numberOfChannels;
@@ -113,6 +110,12 @@ AudioPlayer.prototype.playingWatchdog = function (timeStamp) {
             this.leftAudio = new Float32Array();
             this.rightAudio = new Float32Array();
         }
+        this.currentBufferStartSecond = this.lastBufferStartSecond;
+        this.setStartSecond = true;
+        console.log(this.currentBufferStartSecond);
+        console.log(this.currentBufferEndSecond);
+    } else {
+        this.currentBufferEndSecond = this.lastBufferEndSecond;
     }
 
     var that = this;
@@ -180,9 +183,22 @@ function handleMessage(data) {
                 audioPlayer.play();
             }
             break;
-        case "skip":
-            frames = data.frames;
-            audioPlayer.framesToSkip = frames + 1;
+        case "progress":
+            // check whether we are in sync with the server
+            console.log(data.progress)
+            if (audioPlayer.currentBufferStartSecond <= data.progress && 
+                data.progress <= audioPlayer.currentBufferEndSecond) {
+            } else {
+            }
+            break;
+        case "numberOfSentFrames":
+            var startTime = data.startFrame / 44100;
+            var endTime = data.endFrame / 44100;
+            if (audioPlayer.setStartSecond) {
+                audioPlayer.lastBufferStartSecond = startTime;
+                audioPlayer.setStartSecond = false;
+            }
+            audioPlayer.lastBufferEndSecond = endTime;
             break;
         default:
             $('.placeholder').append(data.message);

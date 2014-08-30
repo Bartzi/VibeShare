@@ -6,6 +6,7 @@ import spotify
 import threading
 import ConfigParser as configparser
 import json
+import signal
 
 from twisted.internet import reactor
 from twisted.python import log
@@ -38,17 +39,27 @@ class SpotifyHandler:
             self.peers = [peer]
             self.session = None
             self.logged_in_event = None
-            self.pause = False
+            self.is_initialised = False
+
+            # instant variables for data publishing
+            self.overall_delivered_frames = 0
             self.delivered_frames = 0
             self.timeout_timer = threading.Timer(1.0, self.on_timeout)
-            self.is_initialised = False
+            self.timeout_timer.deamon = True
+
+            # instant variables for play progress
+            self.play_sent = False
             self.is_playing = False
+            self.progress_timer = threading.Timer(1.0, self.publish_progress)
+            self.progress_timer.deamon = True
+            self.pause = False
+            self.played_seconds = 0
 
         def initialise(self):
             print("initialising spotify")
             self.logged_in_event = threading.Event()
             if self.session:
-                self.send_to_peers(json.dumps({"message":"created connection to spotify"}).encode('utf-8'), False)
+                self.send_to_peers(json.dumps({"message":"created connection to spotify"}), False)
                 print("created connection to spotify")
                 return
             try:
@@ -64,7 +75,7 @@ class SpotifyHandler:
 
                 assert(self.session.connection.state is spotify.ConnectionState.LOGGED_IN)
 
-                self.send_to_peers(json.dumps({"message": "created connection to spotify"}).encode('utf-8'), False)
+                self.send_to_peers(json.dumps({"message": "created connection to spotify"}), False)
                 self.is_initialised = True
                 print("initialisation complete")
             except Exception as e:
@@ -78,6 +89,8 @@ class SpotifyHandler:
             self.session.on(spotify.SessionEvent.END_OF_TRACK, self.end_of_track_handler)
 
         def send_to_peers(self, message, isBinary):
+            if not isBinary:
+                message = message.encode('utf-8')
             for peer in self.peers:
                 peer.sendMessage(message, isBinary)
 
@@ -97,16 +110,26 @@ class SpotifyHandler:
                 # time for a 2 second break
                 self.pause = True
                 self.timeout_timer.start()
+                # notify clients which frames have been sent recently
+                message = {
+                    "message": "numberOfSentFrames",
+                    "startFrame": self.overall_delivered_frames - self.delivered_frames,
+                    "endFrame": self.overall_delivered_frames,
+                }
+                self.send_to_peers(json.dumps(message), False)
                 return 0
 
             self.send_to_peers(frames, True)
             self.delivered_frames += num_frames
+            self.overall_delivered_frames += num_frames
             return num_frames
 
         def end_of_track_handler(self, session):
           print("track ended")
           session.player.unload()
           self.is_playing = False
+          self.play_sent = False
+          self.overall_delivered_frames = 0
 
         def get_playlists(self):
                 try:
@@ -115,8 +138,6 @@ class SpotifyHandler:
                     print(e)
                 try:
                     self.playlists = self.session.playlist_container.load()
-                    #print("sending data")
-                    #self.wamp_session.publish("com.vibeshare.playlistdata", len(self.playlists))
                 except Exception as e:
                     print(e)
                 for playlist in self.playlists:
@@ -140,10 +161,26 @@ class SpotifyHandler:
             self.session.player.unload()
 
         def on_timeout(self):
-            self.send_to_peers(json.dumps({"message": "play"}).encode('utf-8'), False)
+            if not self.play_sent:
+                self.send_to_peers(json.dumps({"message": "play"}), False)
+                self.progress_timer.start()
+                self.play_sent = True
             self.timeout_timer = threading.Timer(2.0, self.on_timeout)
+            self.timeout_timer.deamon = True
             self.delivered_frames = 0
             self.pause = False
+
+        def publish_progress(self):
+            self.played_seconds += 1
+            message = {
+                "message": "progress",
+                "progress": self.played_seconds,
+            }
+            self.send_to_peers(json.dumps(message), False)
+            if self.is_playing:
+                self.progress_timer = threading.Timer(1.0, self.publish_progress)
+                self.progress_timer.deamon = True
+                self.progress_timer.start()
 
 
 
@@ -211,4 +248,8 @@ if __name__ == '__main__':
     reactor.listenTCP(8080, site)
 
     print("starting server")
-    reactor.run()
+    signal.signal(signal.SIGINT, signal.default_int_handler)
+    try:
+        reactor.run()
+    except KeyboardInterrupt:
+        pass
